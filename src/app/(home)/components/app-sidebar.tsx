@@ -160,7 +160,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 
             {/* Suggestions Dropdown */}
             {suggestions.length > 0 && (
-              <div className="absolute top-11 left-2 right-2 z-[100] bg-slate-900/98 border border-white/10 rounded-xl shadow-[0_20px_50px_rgba(0,0,0,0.5)] overflow-hidden backdrop-blur-3xl max-h-[400px] overflow-y-auto custom-scrollbar border-t-blue-500/50">
+              <div className="absolute top-11 left-2 right-2 z-100 bg-slate-900/98 border border-white/10 rounded-xl shadow-[0_20px_50px_rgba(0,0,0,0.5)] overflow-hidden backdrop-blur-3xl max-h-[400px] overflow-y-auto custom-scrollbar border-t-blue-500/50">
                 {suggestions.map((suggestion) => {
                   const name = suggestion.name?.toLowerCase() || "";
                   const address = suggestion.address?.toLowerCase() || "";

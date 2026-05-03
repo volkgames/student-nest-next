@@ -13,7 +13,7 @@ import Map, {
 import useSupercluster from "use-supercluster";
 import { motion, AnimatePresence } from "framer-motion";
 import "mapbox-gl/dist/mapbox-gl.css";
-import { Loader2, MapPin, Home as HomeIcon, Layers, GraduationCap } from "lucide-react";
+import { Loader2, Home as HomeIcon, Layers, GraduationCap } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { HOUSES, useMapInteraction, House } from "@/context/map-context";
 
@@ -55,7 +55,6 @@ export default function MainMap() {
     selectedHouseId,
     setSelectedHouseId,
     searchResult,
-    setSearchResult,
   } = useMapInteraction();
 
   const [viewState, setViewState] = useState({
@@ -282,7 +281,9 @@ export default function MainMap() {
               <div className="absolute inset-0 bg-blue-500/40 rounded-full animate-ping scale-150" />
               <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-blue-600 border border-blue-400 text-white shadow-2xl shadow-blue-500/50">
                 <GraduationCap className="h-5 w-5" />
-                <span className="text-xs font-bold whitespace-nowrap">{searchResult.name}</span>
+                <span className="text-xs font-bold whitespace-nowrap">
+                  {searchResult.name}
+                </span>
               </div>
               <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-2 h-2 rotate-45 bg-blue-600 border-r border-b border-blue-400" />
             </motion.div>
