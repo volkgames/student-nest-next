@@ -1,5 +1,14 @@
 import { NextResponse } from "next/server";
 
+interface NominatimResponse {
+  place_id: number;
+  display_name: string;
+  lat: string;
+  lon: string;
+  class: string;
+  type: string;
+}
+
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const input = searchParams.get("input");
@@ -23,10 +32,10 @@ export async function GET(request: Request) {
       },
     });
 
-    const data = await response.json();
+    const data: NominatimResponse[] = await response.json();
 
-    const results = data.map((item: any) => ({
-      id: item.place_id,
+    const results = data.map((item: NominatimResponse) => ({
+      id: item.place_id.toString(),
       name: item.display_name.split(",")[0], // Usually the name of the place
       address: item.display_name.split(",").slice(1).join(",").trim(),
       latitude: parseFloat(item.lat),

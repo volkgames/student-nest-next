@@ -58,6 +58,15 @@ const data = {
   ],
 };
 
+interface SearchSuggestion {
+  id: string;
+  name: string;
+  address: string;
+  latitude: number;
+  longitude: number;
+  type: string;
+}
+
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const {
     hoveredHouseId,
@@ -68,7 +77,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   } = useMapInteraction();
 
   const [searchQuery, setSearchQuery] = useState("");
-  const [suggestions, setSuggestions] = useState<any[]>([]);
+  const [suggestions, setSuggestions] = useState<SearchSuggestion[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   useEffect(() => {
     const timer = setTimeout(async () => {
@@ -93,7 +102,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     return () => clearTimeout(timer);
   }, [searchQuery]);
 
-  const handleSelectSuggestion = (suggestion: any) => {
+  const handleSelectSuggestion = (suggestion: SearchSuggestion) => {
     if (suggestion.latitude && suggestion.longitude) {
       setSearchResult({
         longitude: suggestion.longitude,
