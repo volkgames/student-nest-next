@@ -58,6 +58,8 @@ type MapContextType = {
   setHoveredHouseId: (id: number | null) => void;
   selectedHouseId: number | null;
   setSelectedHouseId: (id: number | null) => void;
+  searchResult: { longitude: number; latitude: number; name: string } | null;
+  setSearchResult: (result: { longitude: number; latitude: number; name: string } | null) => void;
 };
 
 const MapContext = createContext<MapContextType | undefined>(undefined);
@@ -65,6 +67,11 @@ const MapContext = createContext<MapContextType | undefined>(undefined);
 export function MapProvider({ children }: { children: React.ReactNode }) {
   const [hoveredHouseId, setHoveredHouseId] = useState<number | null>(null);
   const [selectedHouseId, setSelectedHouseId] = useState<number | null>(null);
+  const [searchResult, setSearchResult] = useState<{
+    longitude: number;
+    latitude: number;
+    name: string;
+  } | null>(null);
 
   return (
     <MapContext.Provider
@@ -73,6 +80,8 @@ export function MapProvider({ children }: { children: React.ReactNode }) {
         setHoveredHouseId,
         selectedHouseId,
         setSelectedHouseId,
+        searchResult,
+        setSearchResult,
       }}
     >
       {children}

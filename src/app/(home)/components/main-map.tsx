@@ -13,7 +13,7 @@ import Map, {
 import useSupercluster from "use-supercluster";
 import { motion, AnimatePresence } from "framer-motion";
 import "mapbox-gl/dist/mapbox-gl.css";
-import { Loader2, Home as HomeIcon, Layers } from "lucide-react";
+import { Loader2, MapPin, Home as HomeIcon, Layers, GraduationCap } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { HOUSES, useMapInteraction, House } from "@/context/map-context";
 
@@ -54,6 +54,8 @@ export default function MainMap() {
     setHoveredHouseId,
     selectedHouseId,
     setSelectedHouseId,
+    searchResult,
+    setSearchResult,
   } = useMapInteraction();
 
   const [viewState, setViewState] = useState({
@@ -93,6 +95,17 @@ export default function MainMap() {
     zoom: Math.round(viewState.zoom),
     options: { radius: 60, maxZoom: 17 },
   });
+
+  // Handle Fly To when a search result is selected
+  useEffect(() => {
+    if (searchResult && mapRef.current) {
+      mapRef.current.flyTo({
+        center: [searchResult.longitude, searchResult.latitude],
+        zoom: 15,
+        duration: 2000,
+      });
+    }
+  }, [searchResult]);
 
   // Handle Fly To when a house is selected
   useEffect(() => {
@@ -253,6 +266,28 @@ export default function MainMap() {
         <GeolocateControl position="top-right" />
         <FullscreenControl position="bottom-right" />
         <ScaleControl position="bottom-right" />
+
+        {/* Search Result Marker */}
+        {searchResult && (
+          <Marker
+            longitude={searchResult.longitude}
+            latitude={searchResult.latitude}
+            anchor="bottom"
+          >
+            <motion.div
+              initial={{ scale: 0, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              className="relative group cursor-pointer"
+            >
+              <div className="absolute inset-0 bg-blue-500/40 rounded-full animate-ping scale-150" />
+              <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-blue-600 border border-blue-400 text-white shadow-2xl shadow-blue-500/50">
+                <GraduationCap className="h-5 w-5" />
+                <span className="text-xs font-bold whitespace-nowrap">{searchResult.name}</span>
+              </div>
+              <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-2 h-2 rotate-45 bg-blue-600 border-r border-b border-blue-400" />
+            </motion.div>
+          </Marker>
+        )}
 
         {clusters.map((cluster) => {
           const [longitude, latitude] = cluster.geometry.coordinates;

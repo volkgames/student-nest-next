@@ -8,7 +8,10 @@ import {
   Home,
   Star,
   MapPin,
+  GraduationCap,
+  Loader2,
 } from "lucide-react";
+import { useState, useEffect } from "react";
 import {
   Sidebar,
   SidebarContent,
@@ -56,12 +59,57 @@ const data = {
 };
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
-  const { hoveredHouseId, setHoveredHouseId, selectedHouseId, setSelectedHouseId } = useMapInteraction();
+  const {
+    hoveredHouseId,
+    setHoveredHouseId,
+    selectedHouseId,
+    setSelectedHouseId,
+    setSearchResult,
+  } = useMapInteraction();
+
+  const [searchQuery, setSearchQuery] = useState("");
+  const [suggestions, setSuggestions] = useState<any[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
+  useEffect(() => {
+    const timer = setTimeout(async () => {
+      if (searchQuery.length < 3) {
+        setSuggestions([]);
+        return;
+      }
+
+      setIsSearching(true);
+      try {
+        const url = `/api/places?input=${encodeURIComponent(searchQuery)}`;
+        const response = await fetch(url);
+        const data = await response.json();
+        setSuggestions(data.results || []);
+      } catch (error) {
+        console.error("OSM search error:", error);
+      } finally {
+        setIsSearching(false);
+      }
+    }, 400);
+
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
+  const handleSelectSuggestion = (suggestion: any) => {
+    if (suggestion.latitude && suggestion.longitude) {
+      setSearchResult({
+        longitude: suggestion.longitude,
+        latitude: suggestion.latitude,
+        name: suggestion.name,
+      });
+    }
+
+    setSearchQuery("");
+    setSuggestions([]);
+  };
 
   return (
     <Sidebar
       collapsible="icon"
-      className="border-r border-white/5 bg-slate-950/80 backdrop-blur-2xl"
+      className="border-r border-white/5 bg-slate-950/80 backdrop-blur-2xl overflow-visible"
       {...props}
     >
       <SidebarHeader className="h-16 flex items-center justify-center border-b border-white/5">
@@ -80,20 +128,88 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         </div>
       </SidebarHeader>
 
-      <SidebarContent className="bg-transparent custom-scrollbar">
+      <SidebarContent className="bg-transparent custom-scrollbar overflow-visible">
         {/* Search & Filters */}
-        <SidebarGroup className="group-data-[collapsible=icon]:hidden">
+        <SidebarGroup className="group-data-[collapsible=icon]:hidden overflow-visible">
           <SidebarGroupLabel className="text-slate-500 font-bold uppercase tracking-widest text-[9px] mb-2 px-2">
             Search & Filters
           </SidebarGroupLabel>
-          <SidebarGroupContent className="flex flex-col gap-3 px-2">
+          <SidebarGroupContent className="flex flex-col gap-3 px-2 relative overflow-visible">
             <div className="relative">
-              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-slate-500" />
+              {isSearching ? (
+                <Loader2 className="absolute left-2.5 top-2.5 h-4 w-4 text-blue-500 animate-spin" />
+              ) : (
+                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-slate-500" />
+              )}
               <SidebarInput
-                placeholder="Search district..."
+                placeholder="Search district or university..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
                 className="pl-9 bg-white/5 border-white/10 text-white placeholder:text-slate-600 focus-visible:ring-blue-500/50 rounded-xl"
               />
             </div>
+
+            {/* Suggestions Dropdown */}
+            {suggestions.length > 0 && (
+              <div className="absolute top-11 left-2 right-2 z-[100] bg-slate-900/98 border border-white/10 rounded-xl shadow-[0_20px_50px_rgba(0,0,0,0.5)] overflow-hidden backdrop-blur-3xl max-h-[400px] overflow-y-auto custom-scrollbar border-t-blue-500/50">
+                {suggestions.map((suggestion) => {
+                  const name = suggestion.name?.toLowerCase() || "";
+                  const address = suggestion.address?.toLowerCase() || "";
+                  const type = suggestion.type?.toLowerCase() || "";
+
+                  const isEducation =
+                    type.includes("university") ||
+                    type.includes("school") ||
+                    type.includes("college") ||
+                    type.includes("établissement") ||
+                    name.includes("university") ||
+                    name.includes("faculté") ||
+                    name.includes("école") ||
+                    name.includes("college") ||
+                    name.includes("insat") ||
+                    name.includes("esprit") ||
+                    name.includes("iset") ||
+                    name.includes("ihec") ||
+                    name.includes("isg") ||
+                    name.includes("ensi") ||
+                    name.includes("enit") ||
+                    name.includes("sup'com") ||
+                    name.includes("ipt") ||
+                    address.includes("université");
+
+                  return (
+                    <button
+                      key={suggestion.id}
+                      onClick={() => handleSelectSuggestion(suggestion)}
+                      className="w-full flex items-center gap-3 px-3 py-2.5 hover:bg-white/5 text-left transition-colors border-b border-white/5 last:border-0"
+                    >
+                      <div
+                        className={cn(
+                          "h-8 w-8 rounded-lg flex items-center justify-center shrink-0",
+                          isEducation
+                            ? "bg-blue-500/20 text-blue-400"
+                            : "bg-slate-800 text-slate-400",
+                        )}
+                      >
+                        {isEducation ? (
+                          <GraduationCap className="h-4 w-4" />
+                        ) : (
+                          <MapPin className="h-4 w-4" />
+                        )}
+                      </div>
+                      <div className="flex flex-col overflow-hidden">
+                        <span className="text-sm font-bold text-white truncate">
+                          {suggestion.name}
+                        </span>
+                        <span className="text-[10px] text-slate-500 truncate">
+                          {suggestion.address}
+                        </span>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
 
             <div className="grid grid-cols-2 gap-2">
               <Select defaultValue="any">
@@ -172,10 +288,11 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                 onClick={() => setSelectedHouseId(house.id)}
                 className={cn(
                   "group flex flex-col gap-2 p-3 rounded-2xl bg-white/5 border transition-all duration-300 cursor-pointer shadow-sm hover:shadow-blue-500/10",
-                  hoveredHouseId === house.id 
-                    ? "border-blue-500/50 bg-white/10 scale-[1.02]" 
+                  hoveredHouseId === house.id
+                    ? "border-blue-500/50 bg-white/10 scale-[1.02]"
                     : "border-white/5 hover:border-blue-500/50 hover:bg-white/10",
-                  selectedHouseId === house.id && "ring-2 ring-blue-500 ring-offset-2 ring-offset-slate-950"
+                  selectedHouseId === house.id &&
+                    "ring-2 ring-blue-500 ring-offset-2 ring-offset-slate-950",
                 )}
               >
                 <div
