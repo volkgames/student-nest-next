@@ -1,3 +1,5 @@
+"use client";
+
 import {
   Heart,
   Map as MapIcon,
@@ -7,7 +9,6 @@ import {
   Star,
   MapPin,
 } from "lucide-react";
-
 import {
   Sidebar,
   SidebarContent,
@@ -30,36 +31,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-
-const HOUSES = [
-  {
-    id: 1,
-    title: "Modern Studio near ENIT",
-    price: "450",
-    location: "Belvédère, Tunis",
-    rating: 4.8,
-    type: "Studio",
-    imageColor: "bg-blue-500/20",
-  },
-  {
-    id: 2,
-    title: "Shared Apartment - Manar 2",
-    price: "350",
-    location: "El Manar, Tunis",
-    rating: 4.5,
-    type: "Shared",
-    imageColor: "bg-purple-500/20",
-  },
-  {
-    id: 3,
-    title: "Luxury Room - Marsa",
-    price: "700",
-    location: "La Marsa, Tunis",
-    rating: 4.9,
-    type: "Private Room",
-    imageColor: "bg-emerald-500/20",
-  },
-];
+import { cn } from "@/lib/utils";
+import { HOUSES, useMapInteraction } from "@/context/map-context";
 
 const data = {
   navMain: [
@@ -83,6 +56,8 @@ const data = {
 };
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
+  const { hoveredHouseId, setHoveredHouseId, selectedHouseId, setSelectedHouseId } = useMapInteraction();
+
   return (
     <Sidebar
       collapsible="icon"
@@ -192,7 +167,16 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
             {HOUSES.map((house) => (
               <div
                 key={house.id}
-                className="group flex flex-col gap-2 p-3 rounded-2xl bg-white/5 border border-white/5 hover:border-blue-500/50 hover:bg-white/10 transition-all duration-300 cursor-pointer shadow-sm hover:shadow-blue-500/10"
+                onMouseEnter={() => setHoveredHouseId(house.id)}
+                onMouseLeave={() => setHoveredHouseId(null)}
+                onClick={() => setSelectedHouseId(house.id)}
+                className={cn(
+                  "group flex flex-col gap-2 p-3 rounded-2xl bg-white/5 border transition-all duration-300 cursor-pointer shadow-sm hover:shadow-blue-500/10",
+                  hoveredHouseId === house.id 
+                    ? "border-blue-500/50 bg-white/10 scale-[1.02]" 
+                    : "border-white/5 hover:border-blue-500/50 hover:bg-white/10",
+                  selectedHouseId === house.id && "ring-2 ring-blue-500 ring-offset-2 ring-offset-slate-950"
+                )}
               >
                 <div
                   className={`h-24 w-full rounded-xl ${house.imageColor} flex items-center justify-center transition-transform group-hover:scale-[1.02]`}
@@ -222,8 +206,8 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                         TND/mo
                       </span>
                     </div>
-                    <span className="text-[10px] px-2 py-0.5 rounded-full bg-slate-800 text-slate-300 border border-white/5 font-medium">
-                      {house.type}
+                    <span className="text-[10px] px-2 py-0.5 rounded-full bg-slate-800 text-blue-400 border border-blue-500/20 font-bold uppercase tracking-tighter">
+                      {house.roomType}
                     </span>
                   </div>
                 </div>
