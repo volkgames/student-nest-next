@@ -3,15 +3,10 @@
 import {
   Heart,
   Map as MapIcon,
-  Search,
   Settings,
   Home,
-  Star,
-  MapPin,
-  GraduationCap,
-  Loader2,
+  LucideIcon,
 } from "lucide-react";
-import { useState, useEffect } from "react";
 import {
   Sidebar,
   SidebarContent,
@@ -20,105 +15,54 @@ import {
   SidebarGroupContent,
   SidebarGroupLabel,
   SidebarHeader,
-  SidebarInput,
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarRail,
   SidebarSeparator,
+  useSidebar,
 } from "@/components/ui/sidebar";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { cn } from "@/lib/utils";
-import { HOUSES, useMapInteraction } from "@/context/map-context";
-
-const data = {
-  navMain: [
-    {
-      title: "Navigation",
-      items: [
-        {
-          title: "Map Explorer",
-          url: "#",
-          icon: MapIcon,
-          isActive: true,
-        },
-        {
-          title: "Saved Items",
-          url: "#",
-          icon: Heart,
-        },
-      ],
-    },
-  ],
-};
-
-interface SearchSuggestion {
-  id: string;
-  name: string;
-  address: string;
-  latitude: number;
-  longitude: number;
-  type: string;
-}
+import { useMapInteraction } from "@/context/map-context";
+import { SearchSection } from "./sidebar/search-section";
+import { FilterControls } from "./sidebar/filter-controls";
+import { HouseCard } from "./sidebar/house-card";
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const {
-    hoveredHouseId,
-    setHoveredHouseId,
-    selectedHouseId,
-    setSelectedHouseId,
-    setSearchResult,
+    filters,
+    setFilters,
+    filteredHouses,
+    searchQuery,
+    setSearchQuery,
+    activeTab,
+    setActiveTab,
+    savedHouseIds,
   } = useMapInteraction();
 
-  const [searchQuery, setSearchQuery] = useState("");
-  const [suggestions, setSuggestions] = useState<SearchSuggestion[]>([]);
-  const [isSearching, setIsSearching] = useState(false);
-  useEffect(() => {
-    const timer = setTimeout(async () => {
-      if (searchQuery.length < 3) {
-        setSuggestions([]);
-        return;
-      }
+  const { setOpen } = useSidebar();
 
-      setIsSearching(true);
-      try {
-        const url = `/api/places?input=${encodeURIComponent(searchQuery)}`;
-        const response = await fetch(url);
-        const data = await response.json();
-        setSuggestions(data.results || []);
-      } catch (error) {
-        console.error("OSM search error:", error);
-      } finally {
-        setIsSearching(false);
-      }
-    }, 400);
+  const displayedHouses =
+    activeTab === "explorer"
+      ? filteredHouses
+      : filteredHouses.filter((h) => savedHouseIds.includes(h.id));
 
-    return () => clearTimeout(timer);
-  }, [searchQuery]);
-
-  const handleSelectSuggestion = (suggestion: SearchSuggestion) => {
-    if (suggestion.latitude && suggestion.longitude) {
-      setSearchResult({
-        longitude: suggestion.longitude,
-        latitude: suggestion.latitude,
-        name: suggestion.name,
-      });
-    }
-
-    setSearchQuery("");
-    setSuggestions([]);
-  };
+  const navItems: { title: string; icon: LucideIcon; id: string }[] = [
+    {
+      title: "Map Explorer",
+      icon: MapIcon,
+      id: "explorer",
+    },
+    {
+      title: "Saved Items",
+      icon: Heart,
+      id: "saved",
+    },
+  ];
 
   return (
     <Sidebar
       collapsible="icon"
-      className="border-r border-white/5 bg-slate-950/80 backdrop-blur-2xl overflow-visible"
+      className="border-r border-white/5 bg-slate-950/80 backdrop-blur-2xl"
       {...props}
     >
       <SidebarHeader className="h-16 flex items-center justify-center border-b border-white/5">
@@ -137,208 +81,98 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         </div>
       </SidebarHeader>
 
-      <SidebarContent className="bg-transparent custom-scrollbar overflow-visible">
+      <SidebarContent className="bg-transparent overflow-y-auto overflow-x-hidden custom-scrollbar flex flex-col">
         {/* Search & Filters */}
-        <SidebarGroup className="group-data-[collapsible=icon]:hidden overflow-visible">
-          <SidebarGroupLabel className="text-slate-500 font-bold uppercase tracking-widest text-[9px] mb-2 px-2">
+        <SidebarGroup className="group-data-[collapsible=icon]:hidden">
+          <SidebarGroupLabel className="text-slate-500 font-bold uppercase tracking-widest text-[9px] mb-2 px-2 flex justify-between items-center w-full">
             Search & Filters
-          </SidebarGroupLabel>
-          <SidebarGroupContent className="flex flex-col gap-3 px-2 relative overflow-visible">
-            <div className="relative">
-              {isSearching ? (
-                <Loader2 className="absolute left-2.5 top-2.5 h-4 w-4 text-blue-500 animate-spin" />
-              ) : (
-                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-slate-500" />
-              )}
-              <SidebarInput
-                placeholder="Search district or university..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-9 bg-white/5 border-white/10 text-white placeholder:text-slate-600 focus-visible:ring-blue-500/50 rounded-xl"
-              />
-            </div>
-
-            {/* Suggestions Dropdown */}
-            {suggestions.length > 0 && (
-              <div className="absolute top-11 left-2 right-2 z-100 bg-slate-900/98 border border-white/10 rounded-xl shadow-[0_20px_50px_rgba(0,0,0,0.5)] overflow-hidden backdrop-blur-3xl max-h-[400px] overflow-y-auto custom-scrollbar border-t-blue-500/50">
-                {suggestions.map((suggestion) => {
-                  const name = suggestion.name?.toLowerCase() || "";
-                  const address = suggestion.address?.toLowerCase() || "";
-                  const type = suggestion.type?.toLowerCase() || "";
-
-                  const isEducation =
-                    type.includes("university") ||
-                    type.includes("school") ||
-                    type.includes("college") ||
-                    type.includes("établissement") ||
-                    name.includes("university") ||
-                    name.includes("faculté") ||
-                    name.includes("école") ||
-                    name.includes("college") ||
-                    name.includes("insat") ||
-                    name.includes("esprit") ||
-                    name.includes("iset") ||
-                    name.includes("ihec") ||
-                    name.includes("isg") ||
-                    name.includes("ensi") ||
-                    name.includes("enit") ||
-                    name.includes("sup'com") ||
-                    name.includes("ipt") ||
-                    address.includes("université");
-
-                  return (
-                    <button
-                      key={suggestion.id}
-                      onClick={() => handleSelectSuggestion(suggestion)}
-                      className="w-full flex items-center gap-3 px-3 py-2.5 hover:bg-white/5 text-left transition-colors border-b border-white/5 last:border-0"
-                    >
-                      <div
-                        className={cn(
-                          "h-8 w-8 rounded-lg flex items-center justify-center shrink-0",
-                          isEducation
-                            ? "bg-blue-500/20 text-blue-400"
-                            : "bg-slate-800 text-slate-400",
-                        )}
-                      >
-                        {isEducation ? (
-                          <GraduationCap className="h-4 w-4" />
-                        ) : (
-                          <MapPin className="h-4 w-4" />
-                        )}
-                      </div>
-                      <div className="flex flex-col overflow-hidden">
-                        <span className="text-sm font-bold text-white truncate">
-                          {suggestion.name}
-                        </span>
-                        <span className="text-[10px] text-slate-500 truncate">
-                          {suggestion.address}
-                        </span>
-                      </div>
-                    </button>
-                  );
-                })}
-              </div>
+            {(filters.priceRange !== "any" ||
+              filters.roomType !== "any" ||
+              searchQuery) && (
+              <button
+                onClick={() => {
+                  setFilters({ priceRange: "any", roomType: "any" });
+                  setSearchQuery("");
+                }}
+                className="text-blue-500 hover:text-blue-400 transition-colors lowercase font-medium"
+              >
+                reset
+              </button>
             )}
-
-            <div className="grid grid-cols-2 gap-2">
-              <Select defaultValue="any">
-                <SelectTrigger className="bg-white/5 border-white/10 text-white text-xs h-9 rounded-xl focus:ring-blue-500/50">
-                  <SelectValue placeholder="Price" />
-                </SelectTrigger>
-                <SelectContent className="bg-slate-900 border-white/10 text-white">
-                  <SelectItem value="any">Any Price</SelectItem>
-                  <SelectItem value="low">Under 400</SelectItem>
-                  <SelectItem value="mid">400 - 600</SelectItem>
-                  <SelectItem value="high">600+</SelectItem>
-                </SelectContent>
-              </Select>
-
-              <Select defaultValue="any">
-                <SelectTrigger className="bg-white/5 border-white/10 text-white text-xs h-9 rounded-xl focus:ring-blue-500/50">
-                  <SelectValue placeholder="Type" />
-                </SelectTrigger>
-                <SelectContent className="bg-slate-900 border-white/10 text-white">
-                  <SelectItem value="any">Any Type</SelectItem>
-                  <SelectItem value="studio">Studio</SelectItem>
-                  <SelectItem value="shared">Shared</SelectItem>
-                  <SelectItem value="private">Private</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+          </SidebarGroupLabel>
+          <SidebarGroupContent className="flex flex-col gap-3 px-2 relative">
+            <SearchSection />
+            <FilterControls />
           </SidebarGroupContent>
         </SidebarGroup>
 
         <SidebarSeparator className="bg-white/5 mx-4 my-2" />
 
         {/* Navigation */}
-        {data.navMain.map((group) => (
-          <SidebarGroup key={group.title}>
-            <SidebarGroupLabel className="text-slate-500 font-bold uppercase tracking-widest text-[9px] px-4">
-              {group.title}
-            </SidebarGroupLabel>
-            <SidebarGroupContent>
-              <SidebarMenu>
-                {group.items.map((item) => (
-                  <SidebarMenuItem key={item.title}>
-                    <SidebarMenuButton
-                      asChild
-                      isActive={item.isActive}
-                      tooltip={item.title}
-                      className="mx-2 group-data-[collapsible=icon]:mx-0 w-[calc(100%-1rem)] transition-all duration-300 hover:bg-white/5 data-[active=true]:bg-blue-600 data-[active=true]:text-white rounded-xl"
-                    >
-                      <a href={item.url} className="flex items-center gap-3">
-                        <item.icon className="h-5 w-5 shrink-0" />
-                        <span className="font-semibold">{item.title}</span>
-                      </a>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                ))}
-              </SidebarMenu>
-            </SidebarGroupContent>
-          </SidebarGroup>
-        ))}
+        <SidebarGroup>
+          <SidebarGroupLabel className="text-slate-500 font-bold uppercase tracking-widest text-[9px] px-4">
+            Navigation
+          </SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {navItems.map((item) => (
+                <SidebarMenuItem key={item.id}>
+                  <SidebarMenuButton
+                    isActive={activeTab === item.id}
+                    onClick={() => {
+                      setActiveTab(item.id as "explorer" | "saved");
+                      setOpen(true);
+                    }}
+                    tooltip={item.title}
+                    className="mx-2 group-data-[collapsible=icon]:mx-0 w-[calc(100%-1rem)] transition-all duration-300 hover:bg-white/5 data-[active=true]:bg-blue-600 data-[active=true]:text-white rounded-xl"
+                  >
+                    <item.icon className="h-5 w-5 shrink-0" />
+                    <span className="font-semibold">{item.title}</span>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              ))}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
 
         <SidebarSeparator className="bg-white/5 mx-4 my-2" />
 
         {/* Nearby Houses */}
         <SidebarGroup className="group-data-[collapsible=icon]:hidden">
           <SidebarGroupLabel className="text-slate-500 font-bold uppercase tracking-widest text-[9px] px-4 flex justify-between items-center w-full">
-            Nearby Listings
-            <span className="text-blue-500 text-[10px] normal-case font-medium hover:underline cursor-pointer">
-              View all
-            </span>
+            {activeTab === "explorer" ? "Nearby Listings" : "Saved Nests"}
+            {activeTab === "explorer" && (
+              <span className="text-blue-500 text-[10px] normal-case font-medium hover:underline cursor-pointer">
+                View all
+              </span>
+            )}
           </SidebarGroupLabel>
           <SidebarGroupContent className="px-2 py-2 flex flex-col gap-3">
-            {HOUSES.map((house) => (
-              <div
-                key={house.id}
-                onMouseEnter={() => setHoveredHouseId(house.id)}
-                onMouseLeave={() => setHoveredHouseId(null)}
-                onClick={() => setSelectedHouseId(house.id)}
-                className={cn(
-                  "group flex flex-col gap-2 p-3 rounded-2xl bg-white/5 border transition-all duration-300 cursor-pointer shadow-sm hover:shadow-blue-500/10",
-                  hoveredHouseId === house.id
-                    ? "border-blue-500/50 bg-white/10 scale-[1.02]"
-                    : "border-white/5 hover:border-blue-500/50 hover:bg-white/10",
-                  selectedHouseId === house.id &&
-                    "ring-2 ring-blue-500 ring-offset-2 ring-offset-slate-950",
-                )}
-              >
-                <div
-                  className={`h-24 w-full rounded-xl ${house.imageColor} flex items-center justify-center transition-transform group-hover:scale-[1.02]`}
-                >
-                  <Home className="h-8 w-8 text-white/20" />
+            {displayedHouses.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-12 px-4 text-center">
+                <div className="h-16 w-16 rounded-full bg-white/5 flex items-center justify-center mb-4 border border-white/5">
+                  {activeTab === "explorer" ? (
+                    <Home className="h-8 w-8 text-slate-500" />
+                  ) : (
+                    <Heart className="h-8 w-8 text-slate-500" />
+                  )}
                 </div>
-                <div className="flex flex-col gap-1">
-                  <div className="flex justify-between items-start">
-                    <h4 className="text-sm font-bold text-white line-clamp-1">
-                      {house.title}
-                    </h4>
-                    <div className="flex items-center gap-1 text-[10px] text-amber-400 font-bold bg-amber-400/10 px-1.5 py-0.5 rounded-md">
-                      <Star className="h-2.5 w-2.5 fill-current" />
-                      {house.rating}
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-1 text-[11px] text-slate-400">
-                    <MapPin className="h-3 w-3" />
-                    {house.location}
-                  </div>
-                  <div className="flex justify-between items-center mt-2">
-                    <div className="flex items-baseline gap-1">
-                      <span className="text-sm font-black text-blue-400">
-                        {house.price}
-                      </span>
-                      <span className="text-[10px] text-slate-500 font-medium italic">
-                        TND/mo
-                      </span>
-                    </div>
-                    <span className="text-[10px] px-2 py-0.5 rounded-full bg-slate-800 text-blue-400 border border-blue-500/20 font-bold uppercase tracking-tighter">
-                      {house.roomType}
-                    </span>
-                  </div>
-                </div>
+                <p className="text-sm font-bold text-white">
+                  {activeTab === "explorer"
+                    ? "No results found"
+                    : "No saved nests"}
+                </p>
+                <p className="text-[10px] text-slate-500 mt-1 max-w-[150px] mx-auto">
+                  {activeTab === "explorer"
+                    ? "Try adjusting your filters to find more properties"
+                    : "Heart a property to keep it here for later"}
+                </p>
               </div>
-            ))}
+            ) : (
+              displayedHouses.map((house) => (
+                <HouseCard key={house.id} house={house} />
+              ))
+            )}
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>

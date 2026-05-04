@@ -13,9 +13,12 @@ import Map, {
 import useSupercluster from "use-supercluster";
 import { motion, AnimatePresence } from "framer-motion";
 import "mapbox-gl/dist/mapbox-gl.css";
-import { Loader2, Home as HomeIcon, Layers, GraduationCap } from "lucide-react";
+import { Loader2, Home as HomeIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { HOUSES, useMapInteraction, House } from "@/context/map-context";
+import { useMapInteraction } from "@/context/map-context";
+import { HouseMarker } from "./map/house-marker";
+import { ClusterMarker } from "./map/cluster-marker";
+import { SearchResultMarker } from "./map/search-result-marker";
 
 const TUNISIA_BOUNDS: [[number, number], [number, number]] = [
   [7.3, 30.0],
@@ -55,6 +58,9 @@ export default function MainMap() {
     selectedHouseId,
     setSelectedHouseId,
     searchResult,
+    filteredHouses,
+    activeTab,
+    savedHouseIds,
   } = useMapInteraction();
 
   const [viewState, setViewState] = useState({
@@ -71,10 +77,16 @@ export default function MainMap() {
     [number, number, number, number] | undefined
   >(undefined);
 
+  const displayedHouses = useMemo(() => {
+    return activeTab === "explorer"
+      ? filteredHouses
+      : filteredHouses.filter((h) => savedHouseIds.includes(h.id));
+  }, [activeTab, filteredHouses, savedHouseIds]);
+
   // Convert houses to GeoJSON features
   const points = useMemo(
     () =>
-      HOUSES.map((house) => ({
+      displayedHouses.map((house) => ({
         type: "Feature" as const,
         properties: { cluster: false, houseId: house.id, category: "house" },
         geometry: {
@@ -85,7 +97,7 @@ export default function MainMap() {
           ],
         },
       })),
-    [],
+    [displayedHouses]
   );
 
   const { clusters, supercluster } = useSupercluster({
@@ -109,8 +121,10 @@ export default function MainMap() {
   // Handle Fly To when a house is selected
   useEffect(() => {
     if (selectedHouseId) {
-      const house = HOUSES.find((h) => h.id === selectedHouseId);
+      const house = filteredHouses.find((h) => h.id === selectedHouseId);
       if (house && mapRef.current) {
+        // If we're in saved mode and the house isn't saved, maybe switch back or just show it?
+        // For now, let's just fly to it regardless.
         mapRef.current.flyTo({
           center: [house.coordinates.longitude, house.coordinates.latitude],
           zoom: 16,
@@ -118,7 +132,7 @@ export default function MainMap() {
         });
       }
     }
-  }, [selectedHouseId]);
+  }, [selectedHouseId, filteredHouses]);
 
   useEffect(() => {
     if (!navigator.geolocation) {
@@ -157,25 +171,24 @@ export default function MainMap() {
         setLocationError(true);
         setIsLoading(false);
       },
-      { timeout: 10000 },
+      { timeout: 10000 }
     );
   }, []);
 
   const handleClusterClick = (
     clusterId: number,
     longitude: number,
-    latitude: number,
+    latitude: number
   ) => {
     if (!supercluster || !mapRef.current) return;
 
     try {
       const expansionZoom = Math.min(
         supercluster.getClusterExpansionZoom(clusterId),
-        18,
+        18
       );
 
       if (expansionZoom > 17) {
-        // Spiderfy logic for GTA-style expansion
         const leaves = supercluster.getLeaves(clusterId) as HouseFeature[];
         setSpiderfiedCluster({
           id: clusterId,
@@ -196,7 +209,6 @@ export default function MainMap() {
 
   return (
     <div className="relative w-full h-screen bg-[#0f172a] overflow-hidden">
-      {/* SEO Heading */}
       <h1 className="sr-only">Student Nest - Student Housing Map Tunisia</h1>
 
       {/* Loading Overlay */}
@@ -232,14 +244,13 @@ export default function MainMap() {
           setViewState(evt.viewState);
           if (spiderfiedCluster) setSpiderfiedCluster(null);
 
-          // Update bounds safely in event handler
           const map = mapRef.current?.getMap();
           if (map) {
             const b = map.getBounds()?.toArray().flat() as [
               number,
               number,
               number,
-              number,
+              number
             ];
             setMapBounds(b);
           }
@@ -251,7 +262,7 @@ export default function MainMap() {
               number,
               number,
               number,
-              number,
+              number
             ];
             setMapBounds(b);
           }
@@ -260,6 +271,7 @@ export default function MainMap() {
         mapStyle="mapbox://styles/mapbox/dark-v11"
         mapboxAccessToken={process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN}
         maxBounds={TUNISIA_BOUNDS}
+        onClick={() => setSelectedHouseId(null)}
       >
         <NavigationControl position="top-right" />
         <GeolocateControl position="top-right" />
@@ -273,20 +285,7 @@ export default function MainMap() {
             latitude={searchResult.latitude}
             anchor="bottom"
           >
-            <motion.div
-              initial={{ scale: 0, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              className="relative group cursor-pointer"
-            >
-              <div className="absolute inset-0 bg-blue-500/40 rounded-full animate-ping scale-150" />
-              <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-blue-600 border border-blue-400 text-white shadow-2xl shadow-blue-500/50">
-                <GraduationCap className="h-5 w-5" />
-                <span className="text-xs font-bold whitespace-nowrap">
-                  {searchResult.name}
-                </span>
-              </div>
-              <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-2 h-2 rotate-45 bg-blue-600 border-r border-b border-blue-400" />
-            </motion.div>
+            <SearchResultMarker name={searchResult.name} />
           </Marker>
         )}
 
@@ -304,32 +303,25 @@ export default function MainMap() {
                 longitude={longitude}
                 latitude={latitude}
               >
-                <motion.div
-                  whileHover={{ scale: 1.1 }}
-                  whileTap={{ scale: 0.9 }}
+                <ClusterMarker
+                  longitude={longitude}
+                  latitude={latitude}
+                  pointCount={props.point_count}
                   onClick={() =>
                     handleClusterClick(
                       cluster.id as number,
                       longitude,
-                      latitude,
+                      latitude
                     )
                   }
-                  className="relative flex items-center justify-center cursor-pointer group"
-                >
-                  <div className="absolute inset-0 bg-blue-500/40 rounded-full animate-ping opacity-20" />
-                  <div className="h-10 w-10 bg-slate-900 border-2 border-blue-500 rounded-full flex items-center justify-center text-white font-bold shadow-2xl shadow-blue-500/30 z-10">
-                    {props.point_count}
-                  </div>
-                  <div className="absolute -top-1 -right-1 h-4 w-4 bg-blue-500 rounded-full border-2 border-slate-900 flex items-center justify-center">
-                    <Layers className="h-2 w-2 text-white" />
-                  </div>
-                </motion.div>
+                />
               </Marker>
             );
           }
 
           const houseId = cluster.properties.houseId;
-          const house = HOUSES.find((h) => h.id === houseId)!;
+          const house = displayedHouses.find((h) => h.id === houseId)!;
+          if (!house) return null;
 
           return (
             <Marker
@@ -349,14 +341,15 @@ export default function MainMap() {
           );
         })}
 
-        {/* Spiderfied Markers (GTA expansion) */}
+        {/* Spiderfied Markers */}
         {spiderfiedCluster &&
           spiderfiedCluster.points.map((point, index) => {
             const houseId = point.properties.houseId;
-            const house = HOUSES.find((h) => h.id === houseId)!;
+            const house = displayedHouses.find((h) => h.id === houseId)!;
+            if (!house) return null;
             const angle =
               (index / spiderfiedCluster.points.length) * Math.PI * 2;
-            const radius = 0.0005; // Spacing in degrees
+            const radius = 0.0005;
             const lng = spiderfiedCluster.center[0] + Math.cos(angle) * radius;
             const lat = spiderfiedCluster.center[1] + Math.sin(angle) * radius;
 
@@ -390,19 +383,21 @@ export default function MainMap() {
           })}
 
         {/* Selected House Popup */}
-        {selectedHouseId && HOUSES.find((h) => h.id === selectedHouseId) && (
+        {selectedHouseId && (
           <Popup
             longitude={
-              HOUSES.find((h) => h.id === selectedHouseId)?.coordinates
+              filteredHouses.find((h) => h.id === selectedHouseId)?.coordinates
                 .longitude ?? 0
             }
             latitude={
-              HOUSES.find((h) => h.id === selectedHouseId)?.coordinates
+              filteredHouses.find((h) => h.id === selectedHouseId)?.coordinates
                 .latitude ?? 0
             }
             anchor="top"
             onClose={() => setSelectedHouseId(null)}
             closeButton={false}
+            closeOnClick={false}
+            closeOnMove={false}
             className="z-50"
           >
             <motion.div
@@ -410,96 +405,37 @@ export default function MainMap() {
               animate={{ opacity: 1, y: 0, scale: 1 }}
               className="p-3 bg-slate-900 border border-white/10 backdrop-blur-xl rounded-xl shadow-2xl min-w-[200px] text-white"
             >
-              {HOUSES.find((h) => h.id === selectedHouseId) && (
-                <div className="flex flex-col gap-2">
-                  <div
-                    className={cn(
-                      "h-24 w-full rounded-lg flex items-center justify-center",
-                      HOUSES.find((h) => h.id === selectedHouseId)?.imageColor,
-                    )}
-                  >
-                    <HomeIcon className="h-8 w-8 text-white/20" />
+              {(() => {
+                const house = filteredHouses.find((h) => h.id === selectedHouseId);
+                if (!house) return null;
+                return (
+                  <div className="flex flex-col gap-2">
+                    <div
+                      className={cn(
+                        "h-24 w-full rounded-lg flex items-center justify-center",
+                        house.imageColor
+                      )}
+                    >
+                      <HomeIcon className="h-8 w-8 text-white/20" />
+                    </div>
+                    <h3 className="text-sm font-bold text-white">
+                      {house.title}
+                    </h3>
+                    <div className="flex justify-between items-center mt-1">
+                      <span className="text-xs text-blue-400 font-bold">
+                        {house.price} TND/mo
+                      </span>
+                      <button className="text-[10px] bg-blue-600 hover:bg-blue-500 text-white px-3 py-1.5 rounded-lg font-bold transition-colors">
+                        Details
+                      </button>
+                    </div>
                   </div>
-                  <h3 className="text-sm font-bold text-white">
-                    {HOUSES.find((h) => h.id === selectedHouseId)?.title}
-                  </h3>
-                  <div className="flex justify-between items-center mt-1">
-                    <span className="text-xs text-blue-400 font-bold">
-                      {HOUSES.find((h) => h.id === selectedHouseId)?.price}{" "}
-                      TND/mo
-                    </span>
-                    <button className="text-[10px] bg-blue-600 hover:bg-blue-500 text-white px-3 py-1.5 rounded-lg font-bold transition-colors">
-                      Details
-                    </button>
-                  </div>
-                </div>
-              )}
+                );
+              })()}
             </motion.div>
           </Popup>
         )}
       </Map>
-    </div>
-  );
-}
-
-function HouseMarker({
-  house,
-  isHovered,
-  onHover,
-  onClick,
-}: {
-  house: House;
-  isHovered: boolean;
-  isSelected: boolean;
-  onHover: (id: number | null) => void;
-  onClick: (id: number | null) => void;
-}) {
-  return (
-    <div
-      onMouseEnter={() => onHover(house.id)}
-      onMouseLeave={() => onHover(null)}
-      onClick={() => onClick(house.id)}
-      className={cn(
-        "relative group cursor-pointer transition-all duration-300",
-        isHovered ? "scale-110 z-50" : "z-10",
-      )}
-    >
-      <div
-        className={cn(
-          "flex items-center gap-1.5 px-2.5 py-1.5 rounded-full border shadow-2xl transition-all duration-300",
-          isHovered
-            ? "bg-blue-600 border-blue-400 scale-105 shadow-blue-500/50"
-            : "bg-slate-900/90 border-white/10 backdrop-blur-md",
-        )}
-      >
-        <HomeIcon
-          className={cn(
-            "h-3.5 w-3.5",
-            isHovered ? "text-white" : "text-blue-400",
-          )}
-        />
-        <div className="flex items-center gap-1">
-          <span className="text-xs font-black text-white tracking-tight">
-            {house.price}
-            <span className="text-[9px] opacity-70 ml-0.5">TND</span>
-          </span>
-          <span className="h-3 w-px bg-white/20 mx-0.5" />
-          <span className="text-[10px] font-bold text-blue-400 uppercase tracking-tighter">
-            {house.roomType}
-          </span>
-        </div>
-      </div>
-      <div
-        className={cn(
-          "absolute -bottom-1 left-1/2 -translate-x-1/2 w-2 h-2 rotate-45 border-r border-b transition-colors duration-300",
-          isHovered
-            ? "bg-blue-600 border-blue-400"
-            : "bg-slate-900/90 border-white/10",
-        )}
-      />
-      {isHovered && (
-        <div className="absolute inset-0 rounded-full bg-blue-500/20 animate-ping -z-10 scale-150" />
-      )}
     </div>
   );
 }
