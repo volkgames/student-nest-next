@@ -26,6 +26,8 @@ import { useMapInteraction } from "@/context/map-context";
 import { SearchSection } from "./sidebar/search-section";
 import { FilterControls } from "./sidebar/filter-controls";
 import { HouseCard } from "./sidebar/house-card";
+import { calculateDistance } from "@/lib/distance";
+import { useMemo } from "react";
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const {
@@ -37,14 +39,38 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     activeTab,
     setActiveTab,
     savedHouseIds,
+    searchResult,
   } = useMapInteraction();
 
   const { setOpen } = useSidebar();
 
-  const displayedHouses =
-    activeTab === "explorer"
-      ? filteredHouses
-      : filteredHouses.filter((h) => savedHouseIds.includes(h.id));
+  const displayedHouses = useMemo(() => {
+    const houses =
+      activeTab === "explorer"
+        ? filteredHouses
+        : filteredHouses.filter((h) => savedHouseIds.includes(h.id));
+
+    // If there's a search result, sort by distance to it
+    if (searchResult) {
+      return [...houses].sort((a, b) => {
+        const distA = calculateDistance(
+          searchResult.latitude,
+          searchResult.longitude,
+          a.coordinates.latitude,
+          a.coordinates.longitude,
+        );
+        const distB = calculateDistance(
+          searchResult.latitude,
+          searchResult.longitude,
+          b.coordinates.latitude,
+          b.coordinates.longitude,
+        );
+        return distA - distB;
+      });
+    }
+
+    return houses;
+  }, [activeTab, filteredHouses, savedHouseIds, searchResult]);
 
   const navItems: { title: string; icon: LucideIcon; id: string }[] = [
     {

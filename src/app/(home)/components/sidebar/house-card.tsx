@@ -1,9 +1,10 @@
 "use client";
 
-import { Star, MapPin, Home, Heart } from "lucide-react";
+import { Star, MapPin, Home, Heart, Zap } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { House, useMapInteraction } from "@/context/map-context";
 import { Button } from "@/components/ui/button";
+import { calculateDistance, formatDistance, estimateWalkingTime } from "@/lib/distance";
 
 interface HouseCardProps {
   house: House;
@@ -17,9 +18,21 @@ export function HouseCard({ house }: HouseCardProps) {
     setSelectedHouseId,
     savedHouseIds,
     toggleSaveHouse,
+    searchResult,
   } = useMapInteraction();
 
   const isSaved = savedHouseIds.includes(house.id);
+
+  const distanceKm = searchResult
+    ? calculateDistance(
+        searchResult.latitude,
+        searchResult.longitude,
+        house.coordinates.latitude,
+        house.coordinates.longitude
+      )
+    : null;
+
+  const walkingTime = distanceKm ? estimateWalkingTime(distanceKm) : null;
 
   return (
     <div
@@ -58,6 +71,13 @@ export function HouseCard({ house }: HouseCardProps) {
         >
           <Heart className={cn("h-4 w-4", isSaved && "fill-current")} />
         </Button>
+
+        {distanceKm !== null && (
+          <div className="absolute bottom-2 left-2 flex items-center gap-1 px-2 py-0.5 rounded-lg bg-blue-600/90 backdrop-blur-md text-white text-[9px] font-bold shadow-lg">
+            <Zap className="h-2.5 w-2.5 fill-current" />
+            {formatDistance(distanceKm)} · {walkingTime}m walk
+          </div>
+        )}
       </div>
       <div className="flex flex-col gap-1">
         <div className="flex justify-between items-start">
