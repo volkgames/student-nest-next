@@ -3,7 +3,8 @@
 import {
   Heart,
   Map as MapIcon,
-  Settings,
+  LayoutDashboard,
+  Building2,
   Home,
   LucideIcon,
 } from "lucide-react";
@@ -28,6 +29,7 @@ import { FilterControls } from "./sidebar/filter-controls";
 import { HouseCard } from "./sidebar/house-card";
 import { calculateDistance } from "@/lib/distance";
 import { useMemo } from "react";
+import Link from "next/link";
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const {
@@ -203,18 +205,22 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         </SidebarGroup>
       </SidebarContent>
 
-      <SidebarFooter className="border-t border-white/5 p-4 bg-transparent">
-        <SidebarMenu>
+      <SidebarFooter className="border-t border-white/5 p-4 bg-slate-950/20">
+        <SidebarMenu className="gap-2">
           <SidebarMenuItem>
-            <SidebarMenuButton
-              asChild
-              tooltip="Settings"
-              className="hover:bg-white/5 text-slate-400 rounded-xl"
-            >
-              <a href="#" className="flex items-center gap-3">
-                <Settings className="h-5 w-5" />
-                <span className="font-medium">Settings</span>
-              </a>
+            <SidebarMenuButton asChild className="h-10 rounded-xl bg-blue-500/10 text-blue-400 hover:bg-blue-500 hover:text-white transition-all border border-blue-500/20">
+              <Link href="/student">
+                <LayoutDashboard className="h-4 w-4" />
+                <span className="font-bold text-xs">My Dashboard</span>
+              </Link>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+          <SidebarMenuItem>
+            <SidebarMenuButton asChild className="h-10 rounded-xl bg-indigo-500/10 text-indigo-400 hover:bg-indigo-500 hover:text-white transition-all border border-indigo-500/20">
+              <Link href="/owner">
+                <Building2 className="h-4 w-4" />
+                <span className="font-bold text-xs">Owner Center</span>
+              </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
