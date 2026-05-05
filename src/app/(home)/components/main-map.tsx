@@ -19,6 +19,7 @@ import { useMapInteraction } from "@/context/map-context";
 import { HouseMarker } from "./map/house-marker";
 import { ClusterMarker } from "./map/cluster-marker";
 import { SearchResultMarker } from "./map/search-result-marker";
+import { env } from "@/env";
 
 const TUNISIA_BOUNDS: [[number, number], [number, number]] = [
   [7.3, 30.0],
@@ -269,7 +270,7 @@ export default function MainMap() {
         }}
         style={{ width: "100%", height: "100%" }}
         mapStyle="mapbox://styles/mapbox/dark-v11"
-        mapboxAccessToken={process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN}
+        mapboxAccessToken={env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN}
         maxBounds={TUNISIA_BOUNDS}
         onClick={() => setSelectedHouseId(null)}
       >
