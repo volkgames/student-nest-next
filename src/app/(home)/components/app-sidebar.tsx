@@ -7,6 +7,7 @@ import {
   Building2,
   Home,
   LucideIcon,
+  User as UserIcon,
 } from "lucide-react";
 import {
   Sidebar,
@@ -30,8 +31,12 @@ import { HouseCard } from "./sidebar/house-card";
 import { calculateDistance } from "@/lib/distance";
 import { useMemo } from "react";
 import Link from "next/link";
+import type { User } from "@/db/schema";
 
-export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
+export function AppSidebar({
+  user,
+  ...props
+}: React.ComponentProps<typeof Sidebar> & { user: User }) {
   const {
     filters,
     setFilters,
@@ -90,7 +95,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   return (
     <Sidebar
       collapsible="icon"
-      className="border-r border-white/5 bg-slate-950/80 backdrop-blur-2xl"
+      className="border-r border-white/5 bg-slate-950/80 backdrop-blur-md"
       {...props}
     >
       <SidebarHeader className="h-16 flex items-center justify-center border-b border-white/5">
@@ -207,22 +212,45 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 
       <SidebarFooter className="border-t border-white/5 p-4 bg-slate-950/20">
         <SidebarMenu className="gap-2">
-          <SidebarMenuItem>
-            <SidebarMenuButton asChild className="h-10 rounded-xl bg-blue-500/10 text-blue-400 hover:bg-blue-500 hover:text-white transition-all border border-blue-500/20">
-              <Link href="/student">
-                <LayoutDashboard className="h-4 w-4" />
-                <span className="font-bold text-xs">My Dashboard</span>
-              </Link>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-          <SidebarMenuItem>
-            <SidebarMenuButton asChild className="h-10 rounded-xl bg-indigo-500/10 text-indigo-400 hover:bg-indigo-500 hover:text-white transition-all border border-indigo-500/20">
-              <Link href="/owner">
-                <Building2 className="h-4 w-4" />
-                <span className="font-bold text-xs">Owner Center</span>
-              </Link>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
+          {user ? (
+            user.role === "owner" ? (
+              <SidebarMenuItem>
+                <SidebarMenuButton
+                  asChild
+                  className="h-10 rounded-xl bg-indigo-500/10 text-indigo-400 hover:bg-indigo-500 hover:text-white transition-all border border-indigo-500/20"
+                >
+                  <Link href="/owner">
+                    <Building2 className="h-4 w-4" />
+                    <span className="font-bold text-xs">Owner Center</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            ) : (
+              <SidebarMenuItem>
+                <SidebarMenuButton
+                  asChild
+                  className="h-10 rounded-xl bg-blue-500/10 text-blue-400 hover:bg-blue-500 hover:text-white transition-all border border-blue-500/20"
+                >
+                  <Link href="/student">
+                    <LayoutDashboard className="h-4 w-4" />
+                    <span className="font-bold text-xs">My Dashboard</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            )
+          ) : (
+            <SidebarMenuItem>
+              <SidebarMenuButton
+                asChild
+                className="h-10 rounded-xl bg-white/5 text-slate-400 hover:bg-white/10 hover:text-white transition-all border border-white/10"
+              >
+                <Link href="/login">
+                  <UserIcon className="h-4 w-4" />
+                  <span className="font-bold text-xs">Sign In to Save</span>
+                </Link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+          )}
         </SidebarMenu>
       </SidebarFooter>
       <SidebarRail />

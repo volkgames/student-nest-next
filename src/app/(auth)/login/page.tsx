@@ -17,7 +17,8 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { useAction } from "next-safe-action/hooks";
-import { loginAction, loginSchema } from "../actions";
+import { loginAction } from "../actions";
+import { loginSchema } from "../schema";
 
 type LoginFormValues = z.infer<typeof loginSchema>;
 

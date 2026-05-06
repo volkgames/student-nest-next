@@ -3,6 +3,8 @@ import { env } from "@/env";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { database } from "@/db";
 import * as schema from "@/db/schema";
+import { headers } from "next/headers";
+import { nextCookies } from "better-auth/next-js";
 
 export const auth = betterAuth({
   secret: env.BETTER_AUTH_SECRET,
@@ -11,6 +13,7 @@ export const auth = betterAuth({
     provider: "pg",
     schema: {
       ...schema,
+      user: schema.user,
     },
   }),
   emailAndPassword: {
@@ -25,4 +28,10 @@ export const auth = betterAuth({
       },
     },
   },
+  plugins: [nextCookies()],
 });
+
+export async function getCurrentUser() {
+  const session = await auth.api.getSession({ headers: await headers() });
+  return session?.user as schema.User;
+}

@@ -28,7 +28,8 @@ import {
 } from "@/components/ui/form";
 import { cn } from "@/lib/utils";
 import { useAction } from "next-safe-action/hooks";
-import { signupAction, signupSchema } from "@/app/(auth)/actions";
+import { signupAction } from "@/app/(auth)/actions";
+import { signupSchema } from "@/app/(auth)/schema";
 
 type Role = "student" | "owner" | null;
 
@@ -48,7 +49,7 @@ export default function SignupPage() {
   });
 
   async function onSubmit(values: z.infer<typeof signupSchema>) {
-    execute(values);
+    execute({ ...values, role: role || "student" });
   }
 
   const isLoading = isPending;

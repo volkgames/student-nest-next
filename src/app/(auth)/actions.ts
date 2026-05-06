@@ -5,63 +5,70 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { actionClient } from "@/lib/safe-action";
-import * as z from "zod";
 import { headers } from "next/headers";
 
-export const loginSchema = z.object({
-  email: z.string().email({ message: "Please enter a valid email address." }),
-  password: z
-    .string()
-    .min(6, { message: "Password must be at least 6 characters." }),
-});
-
-export const signupSchema = z.object({
-  name: z.string().min(2, { message: "Name must be at least 2 characters." }),
-  email: z.email({ message: "Please enter a valid email address." }),
-  password: z
-    .string()
-    .min(6, { message: "Password must be at least 6 characters." }),
-  role: z.enum(["student", "owner"]),
-});
+import { loginSchema, signupSchema } from "./schema";
 
 export const loginAction = actionClient
   .inputSchema(loginSchema)
   .action(async ({ parsedInput: { email, password } }) => {
+    let role: string | undefined;
     try {
-      await auth.api.signInEmail({
+      const response = await auth.api.signInEmail({
         body: {
           email,
           password,
         },
         headers: await headers(),
       });
+
+      if (!response) {
+        return { error: "Invalid credentials" };
+      }
+
+      role = response.user.role;
     } catch (error: any) {
       return { error: error.message || "Failed to sign in" };
     }
 
     revalidatePath("/", "layout");
-    redirect("/dashboard");
+    if (role === "owner") {
+      redirect("/owner");
+    } else {
+      redirect("/student");
+    }
   });
 
 export const signupAction = actionClient
   .inputSchema(signupSchema)
-  .action(async ({ parsedInput: { email, password, name, role } }) => {
+  .action(async ({ parsedInput: { email, password, name, role: inputRole } }) => {
+    let role: string | undefined;
     try {
-      await auth.api.signUpEmail({
+      const response = await auth.api.signUpEmail({
         body: {
           email,
           password,
           name,
-          role,
+          role: inputRole,
         },
         headers: await headers(),
       });
+
+      if (!response) {
+        return { error: "Failed to create account" };
+      }
+
+      role = response.user.role;
     } catch (error: any) {
       return { error: error.message || "Failed to sign up" };
     }
 
     revalidatePath("/", "layout");
-    redirect("/dashboard");
+    if (role === "owner") {
+      redirect("/owner");
+    } else {
+      redirect("/student");
+    }
   });
 
 export async function signOut() {
@@ -69,5 +76,5 @@ export async function signOut() {
     headers: await headers(),
   });
   revalidatePath("/", "layout");
-  redirect("/login");
+  redirect("/");
 }
