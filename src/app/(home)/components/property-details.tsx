@@ -3,6 +3,7 @@
 import {
   Sheet,
   SheetContent,
+  SheetDescription,
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
@@ -23,8 +24,17 @@ export function PropertyDetails() {
   const house = filteredHouses.find((h) => h.id === selectedHouseId);
 
   return (
-    <Sheet open={!!selectedHouseId} onOpenChange={(open) => !open && setSelectedHouseId(null)}>
+    <Sheet 
+      open={!!selectedHouseId && !!house} 
+      onOpenChange={(open) => !open && setSelectedHouseId(null)}
+    >
       <SheetContent className="sm:max-w-md bg-slate-950 border-white/5 text-white p-0 overflow-y-auto custom-scrollbar">
+        <SheetHeader className="sr-only">
+          <SheetTitle>{house?.title || "Property Details"}</SheetTitle>
+          <SheetDescription>
+            Detailed information about the selected student housing property.
+          </SheetDescription>
+        </SheetHeader>
         {house && (
           <div className="flex flex-col h-full">
             <PropertyHero house={house} />

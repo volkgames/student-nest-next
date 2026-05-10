@@ -36,7 +36,7 @@ type HouseFeature = {
   type: "Feature";
   properties: {
     cluster: boolean;
-    houseId: number;
+    houseId: string;
     category: string;
   };
   geometry: {
@@ -414,8 +414,13 @@ export default function MainMap() {
                     <div
                       className={cn(
                         "h-24 w-full rounded-lg flex items-center justify-center",
-                        house.imageColor
+                        house.imageColor.startsWith("bg-") ? house.imageColor : ""
                       )}
+                      style={{
+                        backgroundColor: house.imageColor.startsWith("bg-")
+                          ? undefined
+                          : house.imageColor,
+                      }}
                     >
                       <HomeIcon className="h-8 w-8 text-white/20" />
                     </div>

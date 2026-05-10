@@ -6,17 +6,23 @@ import React, {
   useState,
   useEffect,
   useRef,
+  Suspense,
 } from "react";
+import { useSearchParams } from "next/navigation";
+import { getAllProperties, incrementPropertyView } from "@/app/(home)/actions";
 
 export type House = {
-  id: number;
+  id: string;
   title: string;
-  price: string;
+  price: number;
   location: string;
   rating: number;
   type: string;
   roomType: string;
   imageColor: string;
+  images: string[];
+  views: number;
+  bookings: number;
   coordinates: {
     longitude: number;
     latitude: number;
@@ -25,91 +31,115 @@ export type House = {
 
 export const HOUSES: House[] = [
   {
-    id: 1,
+    id: "1",
     title: "Modern Studio near ENIT",
-    price: "450",
+    price: 450,
     location: "Belvédère, Tunis",
     rating: 4.8,
     type: "Studio",
     roomType: "S+0",
     imageColor: "bg-blue-500/20",
+    images: [],
+    views: 120,
+    bookings: 5,
     coordinates: { longitude: 10.175, latitude: 36.822 },
   },
   {
-    id: 2,
+    id: "2",
     title: "Shared Apartment - Manar 2",
-    price: "350",
+    price: 350,
     location: "El Manar, Tunis",
     rating: 4.5,
     type: "Shared",
     roomType: "S+2",
     imageColor: "bg-purple-500/20",
+    images: [],
+    views: 85,
+    bookings: 2,
     coordinates: { longitude: 10.152, latitude: 36.831 },
   },
   {
-    id: 3,
+    id: "3",
     title: "Luxury Room - Marsa",
-    price: "750",
+    price: 750,
     location: "La Marsa, Tunis",
     rating: 4.9,
     type: "Private Room",
     roomType: "S+1",
     imageColor: "bg-emerald-500/20",
+    images: [],
+    views: 210,
+    bookings: 8,
     coordinates: { longitude: 10.324, latitude: 36.885 },
   },
   {
-    id: 4,
+    id: "4",
     title: "Student Room near ESPRIT",
-    price: "380",
+    price: 380,
     location: "Ghazela, Ariana",
     rating: 4.6,
     type: "Private Room",
     roomType: "S+3",
     imageColor: "bg-orange-500/20",
+    images: [],
+    views: 95,
+    bookings: 3,
     coordinates: { longitude: 10.188, latitude: 36.892 },
   },
   {
-    id: 5,
+    id: "5",
     title: "Cosy Studio - Cite El Khadra",
-    price: "550",
+    price: 550,
     location: "Cite El Khadra, Tunis",
     rating: 4.7,
     type: "Studio",
     roomType: "S+0",
     imageColor: "bg-pink-500/20",
+    images: [],
+    views: 110,
+    bookings: 4,
     coordinates: { longitude: 10.198, latitude: 36.838 },
   },
   {
-    id: 6,
+    id: "6",
     title: "Large Shared Flat - Bardo",
-    price: "300",
+    price: 300,
     location: "Le Bardo, Tunis",
     rating: 4.2,
     type: "Shared",
     roomType: "S+3",
     imageColor: "bg-indigo-500/20",
+    images: [],
+    views: 75,
+    bookings: 1,
     coordinates: { longitude: 10.138, latitude: 36.808 },
   },
   {
-    id: 7,
+    id: "7",
     title: "Premium Loft - Berges du Lac",
-    price: "950",
+    price: 950,
     location: "Lac 1, Tunis",
     rating: 4.9,
     type: "Studio",
     roomType: "S+1",
     imageColor: "bg-cyan-500/20",
+    images: [],
+    views: 150,
+    bookings: 6,
     coordinates: { longitude: 10.238, latitude: 36.835 },
   },
   {
-    id: 8,
+    id: "8",
     title: "Affordable Room - Ariana Centre",
-    price: "280",
+    price: 280,
     location: "Ariana Centre",
     rating: 4.1,
     type: "Private Room",
     roomType: "S+4",
     imageColor: "bg-rose-500/20",
+    images: [],
+    views: 60,
+    bookings: 0,
     coordinates: { longitude: 10.192, latitude: 36.862 },
   },
 ];
@@ -120,10 +150,10 @@ export type Filters = {
 };
 
 type MapContextType = {
-  hoveredHouseId: number | null;
-  setHoveredHouseId: (id: number | null) => void;
-  selectedHouseId: number | null;
-  setSelectedHouseId: (id: number | null) => void;
+  hoveredHouseId: string | null;
+  setHoveredHouseId: (id: string | null) => void;
+  selectedHouseId: string | null;
+  setSelectedHouseId: (id: string | null) => void;
   searchResult: { longitude: number; latitude: number; name: string } | null;
   setSearchResult: (
     result: { longitude: number; latitude: number; name: string } | null,
@@ -133,8 +163,8 @@ type MapContextType = {
   filters: Filters;
   setFilters: (filters: Filters) => void;
   filteredHouses: House[];
-  savedHouseIds: number[];
-  toggleSaveHouse: (id: number) => void;
+  savedHouseIds: string[];
+  toggleSaveHouse: (id: string) => void;
   activeTab: "explorer" | "saved";
   setActiveTab: (tab: "explorer" | "saved") => void;
 };
@@ -142,8 +172,9 @@ type MapContextType = {
 const MapContext = createContext<MapContextType | undefined>(undefined);
 
 export function MapProvider({ children }: { children: React.ReactNode }) {
-  const [hoveredHouseId, setHoveredHouseId] = useState<number | null>(null);
-  const [selectedHouseId, setSelectedHouseId] = useState<number | null>(null);
+  const [hoveredHouseId, setHoveredHouseId] = useState<string | null>(null);
+  const [selectedHouseId, setSelectedHouseId] = useState<string | null>(null);
+  const [houses, setHouses] = useState<House[]>(HOUSES);
   const [searchResult, setSearchResult] = useState<{
     longitude: number;
     latitude: number;
@@ -152,8 +183,43 @@ export function MapProvider({ children }: { children: React.ReactNode }) {
   const [searchQuery, setSearchQuery] = useState("");
   const [activeTab, setActiveTab] = useState<"explorer" | "saved">("explorer");
 
-  const [savedHouseIds, setSavedHouseIds] = useState<number[]>([]);
+  const [savedHouseIds, setSavedHouseIds] = useState<string[]>([]);
   const mountedRef = useRef(false);
+
+  // Fetch real properties
+  useEffect(() => {
+    const fetchHouses = async () => {
+      const dbProperties = await getAllProperties();
+      if (dbProperties.length > 0) {
+        const formattedHouses: House[] = dbProperties.map((p) => ({
+          id: p.id,
+          title: p.title ?? "Untitled",
+          price: p.pricePerMonth ?? 0,
+          location: p.location ?? "Unknown",
+          rating: 4.5, // Mock rating
+          type: p.roomType ?? "Studio",
+          roomType: p.roomType ?? "S+0",
+          imageColor: p.imageColor ?? "bg-blue-500/20",
+          images: p.images ?? [],
+          views: p.views,
+          bookings: p.bookings,
+          coordinates: {
+            longitude: parseFloat(p.longitude ?? "0"),
+            latitude: parseFloat(p.latitude ?? "0"),
+          },
+        }));
+        setHouses(formattedHouses);
+      }
+    };
+    fetchHouses();
+  }, []);
+
+  // Increment views when a house is selected
+  useEffect(() => {
+    if (selectedHouseId) {
+      incrementPropertyView(selectedHouseId);
+    }
+  }, [selectedHouseId]);
 
   // Load from localStorage once on the client after hydration
   useEffect(() => {
@@ -173,7 +239,7 @@ export function MapProvider({ children }: { children: React.ReactNode }) {
     }
   }, [savedHouseIds]);
 
-  const toggleSaveHouse = (id: number) => {
+  const toggleSaveHouse = (id: string) => {
     setSavedHouseIds((prev) =>
       prev.includes(id)
         ? prev.filter((houseId) => houseId !== id)
@@ -186,8 +252,8 @@ export function MapProvider({ children }: { children: React.ReactNode }) {
     roomType: "any",
   });
 
-  const filteredHouses = HOUSES.filter((house) => {
-    const price = parseInt(house.price);
+  const filteredHouses = houses.filter((house) => {
+    const price = house.price;
     const matchesPrice =
       filters.priceRange === "any" ||
       (filters.priceRange === "low" && price < 400) ||
@@ -221,9 +287,25 @@ export function MapProvider({ children }: { children: React.ReactNode }) {
         setActiveTab,
       }}
     >
+      <Suspense fallback={null}>
+        <SearchParamsLoader onIdFound={(id) => setTimeout(() => setSelectedHouseId(id), 0)} />
+      </Suspense>
       {children}
     </MapContext.Provider>
   );
+}
+
+function SearchParamsLoader({ onIdFound }: { onIdFound: (id: string) => void }) {
+  const searchParams = useSearchParams();
+
+  useEffect(() => {
+    const id = searchParams.get("id");
+    if (id && id !== "null" && id !== "undefined") {
+      onIdFound(id);
+    }
+  }, [searchParams, onIdFound]);
+
+  return null;
 }
 
 export function useMapInteraction() {

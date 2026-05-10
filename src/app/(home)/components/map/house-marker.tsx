@@ -9,8 +9,8 @@ interface HouseMarkerProps {
   house: House;
   isHovered: boolean;
   isSelected: boolean;
-  onHover: (id: number | null) => void;
-  onClick: (id: number | null) => void;
+  onHover: (id: string | null) => void;
+  onClick: (id: string | null) => void;
 }
 
 export function HouseMarker({

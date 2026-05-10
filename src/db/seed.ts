@@ -1,6 +1,6 @@
 import "dotenv/config";
 
-import { database, pg } from "./index";
+import { pg } from "./index";
 
 async function main() {
     

@@ -5,6 +5,7 @@ import { cn } from "@/lib/utils";
 import { House, useMapInteraction } from "@/context/map-context";
 import { Button } from "@/components/ui/button";
 import { calculateDistance, formatDistance, estimateWalkingTime } from "@/lib/distance";
+import Image from "next/image";
 
 interface HouseCardProps {
   house: House;
@@ -50,11 +51,24 @@ export function HouseCard({ house }: HouseCardProps) {
     >
       <div
         className={cn(
-          "relative h-24 w-full rounded-xl flex items-center justify-center transition-transform group-hover:scale-[1.02]",
-          house.imageColor
+          "relative h-24 w-full rounded-xl overflow-hidden flex items-center justify-center transition-transform group-hover:scale-[1.02]",
+          house.imageColor.startsWith("bg-") ? house.imageColor : ""
         )}
+        style={{
+          backgroundColor: house.imageColor.startsWith("bg-") ? undefined : house.imageColor
+        }}
       >
-        <Home className="h-8 w-8 text-white/20" />
+        {house.images && house.images.length > 0 ? (
+          <Image
+            src={house.images[0]}
+            alt={house.title}
+            fill
+            className="object-cover"
+            sizes="(max-width: 768px) 100vw, 192px"
+          />
+        ) : (
+          <Home className="h-8 w-8 text-white/20" />
+        )}
         <Button
           variant="ghost"
           size="icon"

@@ -49,8 +49,8 @@ export default async function Home() {
             )}
           </header>
           <MainMap />
-          <PropertyDetails />
         </SidebarInset>
+        <PropertyDetails />
       </SidebarProvider>
     </MapProvider>
   );

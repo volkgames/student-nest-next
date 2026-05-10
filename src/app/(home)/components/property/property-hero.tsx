@@ -4,6 +4,7 @@ import { Star, Home, Heart } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { House, useMapInteraction } from "@/context/map-context";
 import { Button } from "@/components/ui/button";
+import Image from "next/image";
 
 interface PropertyHeroProps {
   house: House;
@@ -14,10 +15,28 @@ export function PropertyHero({ house }: PropertyHeroProps) {
   const isSaved = savedHouseIds.includes(house.id);
 
   return (
-    <div className={cn("relative h-64 w-full", house.imageColor)}>
-      <div className="absolute inset-0 flex items-center justify-center">
-        <Home className="h-16 w-16 text-white/10" />
-      </div>
+    <div 
+      className={cn(
+        "relative h-64 w-full overflow-hidden flex items-center justify-center", 
+        house.imageColor.startsWith("bg-") ? house.imageColor : ""
+      )}
+      style={{
+        backgroundColor: house.imageColor.startsWith("bg-") ? undefined : house.imageColor
+      }}
+    >
+      {house.images && house.images.length > 0 ? (
+        <Image
+          src={house.images[0]}
+          alt={house.title}
+          fill
+          className="object-cover"
+          sizes="(max-width: 768px) 100vw, 448px"
+        />
+      ) : (
+        <div className="absolute inset-0 flex items-center justify-center">
+          <Home className="h-16 w-16 text-white/10" />
+        </div>
+      )}
       <div className="absolute top-4 left-4">
         <div className="flex items-center gap-1 text-xs text-amber-400 font-bold bg-slate-900/80 backdrop-blur-md px-2 py-1 rounded-lg">
           <Star className="h-3 w-3 fill-current" />

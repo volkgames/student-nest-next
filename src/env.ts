@@ -6,18 +6,26 @@ export const env = createEnv({
     NODE_ENV: z.enum(["development", "production"]),
     DATABASE_URL: z.url(),
     BETTER_AUTH_SECRET: z.string().min(1),
+    CLOUDINARY_API_KEY: z.string().min(1),
     BETTER_AUTH_URL: z.url(),
   },
   client: {
     NEXT_PUBLIC_SUPABASE_URL: z.string().min(1),
     NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: z.string().min(1),
     NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN: z.string().min(1),
+    NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME: z.string().min(1),
+    NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET: z.string().min(1),
   },
   runtimeEnv: {
     NODE_ENV: process.env.NODE_ENV!,
     DATABASE_URL: process.env.DATABASE_URL!,
     BETTER_AUTH_SECRET: process.env.BETTER_AUTH_SECRET!,
     BETTER_AUTH_URL: process.env.BETTER_AUTH_URL!,
+    CLOUDINARY_API_KEY: process.env.CLOUDINARY_API_KEY!,
+    NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME:
+      process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME!,
+    NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET:
+      process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET!,
     NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL!,
     NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY:
       process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!,

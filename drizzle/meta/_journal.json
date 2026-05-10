@@ -8,6 +8,34 @@
       "when": 1778004911865,
       "tag": "0000_reflective_nehzno",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1778088347597,
+      "tag": "0001_loud_tusk",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1778340343019,
+      "tag": "0002_nasty_medusa",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1778340415862,
+      "tag": "0003_huge_wilson_fisk",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1778434433144,
+      "tag": "0004_spotty_sleeper",
+      "breakpoints": true
     }
   ]
 }

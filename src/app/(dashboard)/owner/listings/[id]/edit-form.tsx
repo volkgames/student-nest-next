@@ -3,7 +3,7 @@
 import { useState, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ArrowRight, ArrowLeft, CheckCircle2, Loader2 } from "lucide-react";
-import { useForm, UseFormReturn } from "react-hook-form";
+import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { Form } from "@/components/ui/form";
@@ -11,24 +11,14 @@ import { Button } from "@/components/ui/button";
 import { MapRef } from "react-map-gl/mapbox";
 import "mapbox-gl/dist/mapbox-gl.css";
 import { useAction } from "next-safe-action/hooks";
-import { createPropertyAction, saveDraftAction } from "./actions";
+import { updatePropertyAction } from "../actions";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import StepBasics from "./components/steps-basic";
-import StepLocation from "./components/step-location";
-import StepAmenities from "./components/step-amenities";
-import StepPhotos from "./components/step-photos";
-import { useEffect } from "react";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
+import StepBasics from "../new/components/steps-basic";
+import StepLocation from "../new/components/step-location";
+import StepAmenities from "../new/components/step-amenities";
+import StepPhotos from "../new/components/step-photos";
+import { Property } from "@/db/schema";
 
 const formSchema = z.object({
   title: z.string().min(3, "Title must be at least 3 characters"),
@@ -43,76 +33,35 @@ const formSchema = z.object({
   roomType: z.string(),
 });
 
-export type FormValues = z.infer<typeof formSchema>;
+type FormValues = z.infer<typeof formSchema>;
 
-export default function NewPropertyPage() {
+export default function EditPropertyForm({ initialData }: { initialData: Property }) {
   const router = useRouter();
   const [step, setStep] = useState(1);
-  const [showDraftModal, setShowDraftModal] = useState(false);
   const mapRef = useRef<MapRef>(null);
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      title: "",
-      description: "",
-      pricePerMonth: 0,
-      location: "",
-      latitude: "36.8065",
-      longitude: "10.1815",
-      images: [],
-      imageColor: "bg-indigo-500/20",
-      amenities: [],
-      roomType: "Studio",
+      title: initialData.title ?? "",
+      description: initialData.description ?? "",
+      pricePerMonth: initialData.pricePerMonth ?? 0,
+      location: initialData.location ?? "",
+      latitude: initialData.latitude ?? "36.8065",
+      longitude: initialData.longitude ?? "10.1815",
+      images: initialData.images ?? [],
+      imageColor: initialData.imageColor ?? "bg-indigo-500/20",
+      amenities: initialData.amenities ?? [],
+      roomType: initialData.roomType ?? "Studio",
     },
   });
 
-  // Check for existing draft on mount
-  useEffect(() => {
-    const savedDraft = localStorage.getItem("property-listing-draft");
-    if (savedDraft) {
-      setTimeout(() => setShowDraftModal(true), 0);
-    }
-  }, []);
-
-  // Handle BeforeUnload to warn about unsaved changes
-  useEffect(() => {
-    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
-      if (form.formState.isDirty) {
-        e.preventDefault();
-        e.returnValue = "";
-      }
-    };
-    window.addEventListener("beforeunload", handleBeforeUnload);
-    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
-  }, [form.formState.isDirty]);
-
-  const restoreDraft = () => {
-    const savedDraft = localStorage.getItem("property-listing-draft");
-    if (savedDraft) {
-      try {
-        const data = JSON.parse(savedDraft);
-        form.reset(data);
-        toast.success("Draft restored!");
-      } catch (e) {
-        console.error("Failed to parse draft", e);
-      }
-    }
-    setShowDraftModal(false);
-  };
-
-  const discardDraft = () => {
-    localStorage.removeItem("property-listing-draft");
-    setShowDraftModal(false);
-  };
-
-  const { execute, isPending } = useAction(createPropertyAction, {
+  const { execute, isPending } = useAction(updatePropertyAction, {
     onSuccess: ({ data }) => {
       if (data?.success) {
-        localStorage.removeItem("property-listing-draft");
-        toast.success("Property listed successfully!");
+        toast.success("Property updated successfully!");
         setStep(5);
-        setTimeout(() => router.push("/owner/listings"), 3000);
+        setTimeout(() => router.push("/owner/listings"), 2000);
       } else if (data?.error) {
         toast.error(data.error);
       }
@@ -123,26 +72,7 @@ export default function NewPropertyPage() {
   });
 
   const onSubmit = (values: FormValues) => {
-    execute(values);
-  };
-
-  const { execute: saveDraft, isPending: isSavingDraft } = useAction(
-    saveDraftAction,
-    {
-      onSuccess: ({ data }) => {
-        if (data?.success) {
-          localStorage.removeItem("property-listing-draft");
-          toast.success("Draft saved to server!");
-          router.push("/owner/listings");
-        } else if (data?.error) {
-          toast.error(data.error);
-        }
-      },
-    },
-  );
-
-  const onSaveDraft = () => {
-    saveDraft(form.getValues());
+    execute({ id: initialData.id, ...values });
   };
 
   const nextStep = async () => {
@@ -168,10 +98,10 @@ export default function NewPropertyPage() {
         <div className="flex justify-between items-center">
           <div>
             <h1 className="text-3xl font-black text-white tracking-tight">
-              Add New Property
+              Edit Property
             </h1>
             <p className="text-slate-500 text-sm">
-              Fill in the details to list your house on Student Nest
+              Update the details of your property listing
             </p>
           </div>
           <div className="text-right">
@@ -182,7 +112,7 @@ export default function NewPropertyPage() {
 
         <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden">
           <motion.div
-            initial={{ width: "0%" }}
+            initial={{ width: "25%" }}
             animate={{ width: `${(step / 4) * 100}%` }}
             className="h-full bg-linear-to-r from-indigo-600 to-purple-600 shadow-[0_0_15px_rgba(79,70,229,0.5)]"
           />
@@ -190,7 +120,6 @@ export default function NewPropertyPage() {
       </div>
 
       <Form {...form}>
-        <FormAutoSave form={form} />
         <form
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           onSubmit={form.handleSubmit(onSubmit as any)}
@@ -224,19 +153,6 @@ export default function NewPropertyPage() {
               Back
             </Button>
 
-            <Button
-              type="button"
-              variant="ghost"
-              onClick={onSaveDraft}
-              disabled={isSavingDraft || isPending}
-              className="h-12 px-6 text-indigo-500 hover:text-indigo-400 hover:bg-white/5 rounded-xl font-bold uppercase tracking-widest text-[10px]"
-            >
-              {isSavingDraft ? (
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              ) : null}
-              Save as Draft
-            </Button>
-
             {step < 4 ? (
               <Button
                 type="button"
@@ -255,11 +171,11 @@ export default function NewPropertyPage() {
                 {isPending ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Publishing...
+                    Updating...
                   </>
                 ) : (
                   <>
-                    Publish Listing
+                    Update Listing
                     <CheckCircle2 className="ml-2 h-4 w-4" />
                   </>
                 )}
@@ -268,34 +184,6 @@ export default function NewPropertyPage() {
           </div>
         </form>
       </Form>
-
-      <AlertDialog open={showDraftModal} onOpenChange={setShowDraftModal}>
-        <AlertDialogContent className="bg-slate-900 border-white/10 rounded-3xl">
-          <AlertDialogHeader>
-            <AlertDialogTitle className="text-white">
-              Unfinished Listing Found
-            </AlertDialogTitle>
-            <AlertDialogDescription className="text-slate-400">
-              You have an unfinished listing from your previous session. Would
-              you like to restore it or start fresh?
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel
-              onClick={discardDraft}
-              className="bg-white/5 border-white/10 text-white hover:bg-white/10 rounded-xl"
-            >
-              Discard
-            </AlertDialogCancel>
-            <AlertDialogAction
-              onClick={restoreDraft}
-              className="bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl"
-            >
-              Restore Draft
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </div>
   );
 }
@@ -311,22 +199,11 @@ function SuccessState() {
         <CheckCircle2 className="h-10 w-10" />
       </div>
       <div className="space-y-2">
-        <h2 className="text-3xl font-black text-white">Listing Published!</h2>
+        <h2 className="text-3xl font-black text-white">Listing Updated!</h2>
         <p className="text-slate-500">
-          Your property is now live. Redirecting...
+          Your changes have been saved. Redirecting...
         </p>
       </div>
     </motion.div>
   );
-}
-
-function FormAutoSave({ form }: { form: UseFormReturn<FormValues> }) {
-  useEffect(() => {
-    const subscription = form.watch((value) => {
-      localStorage.setItem("property-listing-draft", JSON.stringify(value));
-    });
-    return () => subscription.unsubscribe();
-  }, [form]);
-
-  return null;
 }

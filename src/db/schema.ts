@@ -6,9 +6,15 @@ import {
   boolean,
   index,
   pgEnum,
+  integer,
+  jsonb,
 } from "drizzle-orm/pg-core";
 
 export const roleEnum = pgEnum("roleEnum", ["owner", "student"]);
+export const propertyStatusEnum = pgEnum("propertyStatus", [
+  "draft",
+  "published",
+]);
 
 export const user = pgTable("user", {
   id: text("id").primaryKey(),
@@ -83,9 +89,49 @@ export const verification = pgTable(
   (table) => [index("verification_identifier_idx").on(table.identifier)],
 );
 
+export const property = pgTable(
+  "property",
+  {
+    id: text("id").primaryKey(),
+    title: text("title"),
+    description: text("description"),
+    pricePerMonth: integer("price_per_month"),
+    location: text("location"),
+    latitude: text("latitude"),
+    longitude: text("longitude"),
+    images: jsonb("images").$type<string[]>(),
+    imageColor: text("image_color"),
+    amenities: jsonb("amenities").$type<string[]>(),
+    roomType: text("room_type"),
+    views: integer("views").default(0).notNull(),
+    bookings: integer("bookings").default(0).notNull(),
+    ownerId: text("owner_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    status: propertyStatusEnum("status").default("published").notNull(),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at")
+      .defaultNow()
+      .$onUpdate(() => /* @__PURE__ */ new Date())
+      .notNull(),
+  },
+  (table) => [index("property_ownerId_idx").on(table.ownerId)],
+);
+
 export const userRelations = relations(user, ({ many }) => ({
   sessions: many(session),
   accounts: many(account),
+  properties: many(property, {
+    relationName: "owner_to_properties",
+  }),
+}));
+
+export const propertyRelations = relations(property, ({ one }) => ({
+  owner: one(user, {
+    fields: [property.ownerId],
+    references: [user.id],
+    relationName: "owner_to_properties",
+  }),
 }));
 
 export const sessionRelations = relations(session, ({ one }) => ({
@@ -106,3 +152,5 @@ export type User = typeof user.$inferSelect;
 export type Session = typeof session.$inferSelect;
 export type Account = typeof account.$inferSelect;
 export type Verification = typeof verification.$inferSelect;
+export type Property = typeof property.$inferSelect;
+export type NewProperty = typeof property.$inferInsert;
